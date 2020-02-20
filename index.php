@@ -182,7 +182,7 @@ $(document).ready(function(){
 </div>
 <hr>
 <div class="notes" align="center">
-GitHub | <a href="https://worldmapjs.org/cloropleth.html">WorldMap.js</a>
+	<a href="https://github.com/cclljj/TW-CDC-Travel-Health">GitHub</a> | <a href="https://worldmapjs.org/cloropleth.html">WorldMap.js</a>
 </div>
 
 
