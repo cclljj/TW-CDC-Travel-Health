@@ -11,8 +11,8 @@ function removeBOM($data) {
     return $data;
 }
 
-$items = file_get_contents("CDC_CountryEpidLevel.json");
-//$items = file_get_contents("https://www.cdc.gov.tw/CountryEpidLevel/ExportJSON");
+$items = file_get_contents("https://www.cdc.gov.tw/CountryEpidLevel/ExportJSON");
+//$items = file_get_contents("CDC_CountryEpidLevel.json");
 $json = json_decode(removeBOM($items),true);
 
 $all = array();
