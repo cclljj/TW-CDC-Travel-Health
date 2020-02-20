@@ -2,8 +2,8 @@
 <head>
 <title>Taiwan CDC - 國際間旅遊疫情建議</title>
 </head>
-<?php
 
+<?php
 function removeBOM($data) {
     if (0 === strpos(bin2hex($data), 'efbbbf')) {
        return substr($data, 3);
@@ -112,21 +112,12 @@ var countries = {};
     	},
    	showtable:false, // Hide Table
    	editpanel:false,  // Hide Edit
-   	//dataType: 'csv',
-   	//dataurl: 'countriesdata.csv', // location of the file
-   	//defaultfill: "steelblue", // default fill color
-   	//defaultsize: 30,
    	player: false // show player
    }); 
- 
-// Adds the button an 
- 
+  
 $(document).ready(function(){
-//	$("#playeranim").click(function() {
-
    setTimeout(function(){
 	createmap.update([
-			//{"location":"BR","color":"#0E5FF6"},
 <?php
 	foreach ($all as $disease => $value){
 		for ($i=0;$i<count($msgs);$i++){
@@ -141,9 +132,6 @@ $(document).ready(function(){
 ?>
 			],
 			"cloropleth")}, 500);
-
- 
-//	});
 });
 </script>
 
@@ -182,7 +170,5 @@ $(document).ready(function(){
 	<a href="https://github.com/cclljj/TW-CDC-Travel-Health">GitHub</a> | <a href="https://worldmapjs.org/cloropleth.html">WorldMap.js</a>
 </div>
 
-
 </body>
 </html>
-
