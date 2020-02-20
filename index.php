@@ -1,5 +1,6 @@
 <html>
 <head>
+<title>Taiwan CDC - 國際間旅遊疫情建議</title>
 </head>
 <?php
 
@@ -16,7 +17,6 @@ $json = json_decode(removeBOM($items),true);
 
 $all = array();
 $msgs = ["Watch","Alert","Warning"];
-//$colors = ["FFA500","FF0000","FF00FF"];
 $colors = ["FFFF00","FFA500","FF0000"];
 $levels = [[],[],[]];
 
@@ -39,10 +39,6 @@ foreach ($json as $item){
 		}
 	}
 }
-
-//var_dump($all);
-//var_dump($levels);
-
 ?>
 
 <body>
@@ -58,10 +54,11 @@ foreach ($json as $item){
 <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.15/css/jquery.dataTables.min.css">
 
 <!-- Latest compiled JavaScript -->
-<script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
-<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
-<script src="https://cdn.datatables.net/1.10.15/js/jquery.dataTables.min.js"></script>
-<script src="https://d3js.org/d3.v3.min.js"></script>
+<!--script src="https://code.jquery.com/jquery-3.2.1.min.js"></script> -->
+<script src="js/jquery.min.js"></script>
+<script src="//maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+<script src="//cdn.datatables.net/1.10.15/js/jquery.dataTables.min.js"></script>
+<script src="//d3js.org/d3.v3.min.js"></script>
 <script src="//d3js.org/topojson.v1.min.js"></script>
 <script src="//d3js.org/d3.geo.projection.v0.min.js"></script>
 <script src="//d3js.org/queue.v1.min.js"></script> 
