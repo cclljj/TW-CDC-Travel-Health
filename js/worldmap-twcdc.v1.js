@@ -1,10 +1,9 @@
- 
-
-    
   var defaultsettings = {
     elementid: "body",
-    width: $( window ).width()-$( window ).width()/10,
-    height: $( window ).height() * 0.8,
+    //width: $( window ).width()-$( window ).width()/10,
+    //height: $( window ).height() * 0.8,
+    width: $( window ).width()-document.getElementById("country_names").offsetWidth,
+    height: ($( window ).width()-document.getElementById("country_names").offsetWidth)/2,
     mapstyle: {
         ocean: "#4A5B62",
         region: "#F3F3F3",
@@ -2175,10 +2174,6 @@ for(var i = 0; i < values[j].length; i++) {
                 .attr("height", function(d) { return d.value*scaleval*4/factor;})
                 .attr("y", function(d) { return d.y;})
                 .style("fill", function(d) { return d.colour;});
-                //.attr("r", function(d) { return d.properties.size;})
-               // .on("mouseover", function(d) { this.style.stroke = "#ff8532"; if ( typeof d.properties.texto !== 'undefined' )d3.select('#showinfo').html("<b>"+d.properties.name+"</b><br>"+d.properties.texto);else if( typeof d.properties.name !== 'undefined' )+d3.select('#showinfo').html("<b>"+d.properties.name+"</b>");})
-               // .on("mouseout", function(d) { this.style.stroke = d.properties.fill;})
-               // .on("click", function(a) { if(borrar)save.features.removeValue('id', a.id),this.remove();else{showbox(a.properties.name, a.properties.texto);} });
            }
        
 addlegend(g,names,"bar",settings);

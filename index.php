@@ -2,8 +2,8 @@
 <head>
 <title>Taiwan CDC - 國際間旅遊疫情建議</title>
 </head>
-
 <?php
+
 function removeBOM($data) {
     if (0 === strpos(bin2hex($data), 'efbbbf')) {
        return substr($data, 3);
@@ -11,8 +11,8 @@ function removeBOM($data) {
     return $data;
 }
 
-$items = file_get_contents("https://www.cdc.gov.tw/CountryEpidLevel/ExportJSON");
 //$items = file_get_contents("CDC_CountryEpidLevel.json");
+$items = file_get_contents("https://www.cdc.gov.tw/CountryEpidLevel/ExportJSON");
 $json = json_decode(removeBOM($items),true);
 
 $all = array();
@@ -46,8 +46,42 @@ foreach ($json as $item){
 <h2>國際間旅遊疫情建議</h2>
 資料來源：<a href="https://www.cdc.gov.tw/CountryEpidLevel/" alt="data source">台灣衛生福利部疾病管制署</a>
 </div>
-<div id="mapcontainer" align="center"> <!-- You can place the container wherever you want, but it has to be before loading the code-->
+
+<table border=0>
+<tr valign="top">
+<td>
+<div id="country_names" class="country_names">
+<table border=1>
+<?php
+foreach ($all as $disease => $value){
+	echo "<tr><td align=\"center\"><font size=\"+2\" color=\"0000FF\">";
+	echo $disease;
+	echo "</font></td></tr>";
+	for ($i=count($msgs)-1;$i>=0;$i--){
+		echo "<tr>";
+		echo "<td bgcolor=\"".$colors[$i]."\" align=\"center\"><font size=\"+2\" color=\"#000000\">".$msgs[$i]."</font></td>";
+		echo "</tr>";
+		echo "<tr valign=\"top\">";
+		echo "<td align=\"center\">";
+		foreach ($levels[$i] as $country){
+			if (isset($all[$disease][$country])){
+				$tmp = $all[$disease][$country];
+				echo $tmp["areaDesc"]." (".$tmp["areaDesc_EN"].")<br>";
+			}
+		}
+		echo "</td>";
+		echo "</tr>";
+	}
+}
+?>
+</table>
 </div>
+</td>
+<td>
+<div id="mapcontainer" > <!-- You can place the container wherever you want, but it has to be before loading the code-->
+</div>
+</td>
+</tr></table>
 
 <!-- Latest compiled and minified CSS -->
 <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
@@ -112,12 +146,21 @@ var countries = {};
     	},
    	showtable:false, // Hide Table
    	editpanel:false,  // Hide Edit
+   	//dataType: 'csv',
+   	//dataurl: 'countriesdata.csv', // location of the file
+   	//defaultfill: "steelblue", // default fill color
+   	//defaultsize: 30,
    	player: false // show player
    }); 
-  
+ 
+// Adds the button an 
+ 
 $(document).ready(function(){
+//	$("#playeranim").click(function() {
+
    setTimeout(function(){
 	createmap.update([
+			//{"location":"BR","color":"#0E5FF6"},
 <?php
 	foreach ($all as $disease => $value){
 		for ($i=0;$i<count($msgs);$i++){
@@ -132,43 +175,19 @@ $(document).ready(function(){
 ?>
 			],
 			"cloropleth")}, 500);
+
+ 
+//	});
 });
 </script>
 
-<div class="divider"></div>
 
-<div class="country_names" align="center">
-<table border=1>
-<?php
-	foreach ($all as $disease => $value){
-		echo "<tr><td colspan=3 align=\"center\"><font size=\"+2\" color=\"0000FF\">";
-		echo $disease;
-		echo "</font></td></tr>";
-		echo "<tr>";
-		for ($i=0;$i<count($msgs);$i++){
-			echo "<td bgcolor=\"".$colors[$i]."\" align=\"center\"><font size=\"+2\" color=\"#000000\">".$msgs[$i]."</font></td>";
-		}
-		echo "</tr>";
-		echo "<tr valign=\"top\">";
-		for ($i=0;$i<count($msgs);$i++){
-			echo "<td align=\"center\">";
-			foreach ($levels[$i] as $country){
-				if (isset($all[$disease][$country])){
-					$tmp = $all[$disease][$country];
-					echo $tmp["areaDesc"]." (".$tmp["areaDesc_EN"].")<br>";
-				}
-			}
-			echo "</td>";
-		}
-		echo "</tr>";
-	}
-?>
-</table>
-</div>
 <hr>
 <div class="notes" align="center">
 	<a href="https://github.com/cclljj/TW-CDC-Travel-Health">GitHub</a> | <a href="https://worldmapjs.org/cloropleth.html">WorldMap.js</a>
 </div>
 
+
 </body>
 </html>
+
