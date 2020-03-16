@@ -19,8 +19,12 @@ $all = array();
 $msgs = ["Watch","Alert","Warning"];
 $colors = ["FFFF00","FFA500","FF0000"];
 $levels = [[],[],[]];
-
+$pandemic = -1;
 foreach ($json as $item){
+	if ($item["ISO3166"]=="") {
+		$item["ISO3166"] = "ALL";
+		$item["areaDesc_EN"] = "Others";
+	}
 	$alert_disease = $item["alert_disease"];
 	
 	$tmp = array();
@@ -36,6 +40,9 @@ foreach ($json as $item){
 	for ($i=count($msgs)-1;$i>=0;$i--){
 		if (strpos($tmp["severity_level"], $msgs[$i])!==false){
 			array_push($levels[$i], $tmp["ISO3166"]);
+			if ($tmp["ISO3166"]=="ALL") {
+				$pandemic = $i;
+			}
 		}
 	}
 }
@@ -51,13 +58,14 @@ foreach ($json as $item){
 <tr valign="top">
 <td>
 <div id="country_names" class="country_names">
-<table border=1>
+<table border=1i width=300>
 <?php
 foreach ($all as $disease => $value){
 	echo "<tr><td align=\"center\"><font size=\"+2\" color=\"0000FF\">";
 	echo $disease;
 	echo "</font></td></tr>";
 	for ($i=count($msgs)-1;$i>=0;$i--){
+		$num = 0;
 		echo "<tr>";
 		echo "<td bgcolor=\"".$colors[$i]."\" align=\"center\"><font size=\"+2\" color=\"#000000\">".$msgs[$i]."</font></td>";
 		echo "</tr>";
@@ -66,7 +74,12 @@ foreach ($all as $disease => $value){
 		foreach ($levels[$i] as $country){
 			if (isset($all[$disease][$country])){
 				$tmp = $all[$disease][$country];
-				echo $tmp["areaDesc"]." (".$tmp["areaDesc_EN"].")<br>";
+				if ($num==0){
+					echo $tmp["areaDesc"]." (".$tmp["areaDesc_EN"].")";
+				} else {
+					echo ", ".$tmp["areaDesc"]." (".$tmp["areaDesc_EN"].")";
+				}
+				$num = $num + 1;
 			}
 		}
 		echo "</td>";
@@ -136,8 +149,19 @@ var countries = {};
         	//region: "#F3F3F3",
         	//border : "#ffffff"
        		ocean: "#CBEEFB",
+<?php
+	if ($pandemic<0) {
+?>
         	region: "#c0e0c0",
+<?php
+	} else {
+?>
+        	region: "#<?php echo $colors[$pandemic]; ?>",
+<?php
+	}
+?>
         	border : "#000000"
+
     	},
     	project: {  
         	name: "Mercator",
@@ -165,6 +189,7 @@ $(document).ready(function(){
 	foreach ($all as $disease => $value){
 		for ($i=0;$i<count($msgs);$i++){
 			foreach ($levels[$i] as $country){
+				if ($country=="ALL") continue;
 				if (isset($all[$disease][$country])){
 					$tmp = $all[$disease][$country];
 					echo "\t\t\t{\"location\":\"".$country."\",\"color\":\"#".$colors[$i]."\"},\n";
@@ -186,6 +211,17 @@ $(document).ready(function(){
 <div class="notes" align="center">
 	<a href="https://github.com/cclljj/TW-CDC-Travel-Health">GitHub</a> | <a href="https://worldmapjs.org/cloropleth.html">WorldMap.js</a>
 </div>
+
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-61532541-2"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-61532541-2');
+</script>
+
 
 
 </body>

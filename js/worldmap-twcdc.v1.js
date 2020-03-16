@@ -319,8 +319,12 @@ svg.on("mousemove", function() {if (dragging){
       .on("mouseover", function(d) { 
 		//this.style.fill = "#ff8532";
 		this.style.fill = "#e0e0e0";
-		if (d.code in countries){
+		if (d.code == "TW"){
+			d3.select('#showinfo').html("<b>&nbsp;"+d.name+"&nbsp;</b>"+"<br>&nbsp; <br>順時鐘就對了！&nbsp;"); 
+		} else if (d.code in countries){
 			d3.select('#showinfo').html("<b>&nbsp;"+d.name+"&nbsp;</b>"+"<br>&nbsp; "+countries[d.code]+"&nbsp;"); 
+		} else if ("ALL" in countries) {
+			d3.select('#showinfo').html("<b>&nbsp;"+d.name+"&nbsp;</b>"+"<br>&nbsp; "+countries["ALL"]+"&nbsp;"); 
 		} else {
 			d3.select('#showinfo').html("<b>&nbsp;"+d.name+"&nbsp;</b>"+"<br>"); 
 		}
