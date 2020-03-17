@@ -328,9 +328,26 @@ svg.on("mousemove", function() {if (dragging){
 		} else {
 			d3.select('#showinfo').html("<b>&nbsp;"+d.name+"&nbsp;</b>"+"<br>"); 
 		}
-		//d3.select('#showinfo').html("<b>"+d.name+"</b>"+"<br>Latitude: "+d.lat+"<br>Longitude: "+d.lon); 
+		d3.select('#showinfo').style("left", (d3.event.pageX + 7) + "px")
+				.style("top", (d3.event.pageY - 15) + "px")
+				.style("padding", "5px")
+				.style("border", "solid #ccc 1px")
+				.style("display", "block")
+				.style("opacity", 1);
 	})
-      .on("mouseout", function() { this.style.fill = settings.mapstyle.region; })
+      .on("mouseout", function() { 
+		this.style.fill = settings.mapstyle.region; 
+		d3.select('#showinfo').html("")
+				.style("padding", 0)
+				.style("border", "0px")
+				.stype("opacity",0)
+				.style("display","none");
+	})
+    
+      .on("mousemove", function(d) {
+		d3.select('#showinfo').style("left", (d3.event.pageX + 7) + "px")
+				.style("top", (d3.event.pageY - 15) + "px")
+	})
    
     g.append("path")
       .datum(topojson.mesh(world, world.objects.states, function(a, b) { return a !== b; }))
