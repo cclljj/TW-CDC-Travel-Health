@@ -100,9 +100,7 @@ foreach ($all as $disease => $value){
 <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
 <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.15/css/jquery.dataTables.min.css">
 
-<!-- Latest compiled JavaScript -->
-<!--script src="https://code.jquery.com/jquery-3.2.1.min.js"></script> -->
-<script src="js/jquery.min.js"></script>
+<script src="jquery-3.6.4.min.js"></script>
 <script src="//maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
 <script src="//cdn.datatables.net/1.10.15/js/jquery.dataTables.min.js"></script>
 <script src="//d3js.org/d3.v3.min.js"></script>
