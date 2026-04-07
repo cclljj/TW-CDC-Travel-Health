@@ -51,7 +51,8 @@ foreach ($json as $item){
 <body>
 <div id="page_header" align="center">
 <h2>國際間旅遊疫情建議</h2>
-資料來源：<a href="https://www.cdc.gov.tw/CountryEpidLevel/" alt="data source">台灣衛生福利部疾病管制署</a>
+資料來源：<a href="https://www.cdc.gov.tw/CountryEpidLevel/" alt="data source">台灣衛生福利部疾病管制署</a><br>
+資料擷取時間：<?php echo date("Y-m-d H:i:s T"); ?>
 </div>
 
 <table border=0>
