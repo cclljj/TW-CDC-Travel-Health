@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Taiwan CDC - 國際間旅遊疫情建議</title>
+
+<!-- Latest compiled and minified CSS -->
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.15/css/jquery.dataTables.min.css">
+<link rel="stylesheet" href="css/worldmap-twcdc.v1.css">
+</head>
+<body>
+
+<div id="page_header" align="center">
+<h2>國際間旅遊疫情建議</h2>
+資料來源：<a href="https://www.cdc.gov.tw/CountryEpidLevel/" alt="data source">台灣衛生福利部疾病管制署</a><br>
+資料擷取時間：<span id="fetch_time"></span>
+</div>
+
+<table border=0>
+<tr valign="top">
+<td>
+<div id="country_names" class="country_names">
+<table id="country_names_table" border=1 width=300>
+</table>
+</div>
+</td>
+<td>
+<div id="mapcontainer">
+</div>
+</td>
+</tr>
+</table>
+
+<script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+<script src="https://cdn.datatables.net/1.10.15/js/jquery.dataTables.min.js"></script>
+<script src="https://d3js.org/d3.v3.min.js"></script>
+<script src="https://d3js.org/topojson.v1.min.js"></script>
+<script src="https://d3js.org/d3.geo.projection.v0.min.js"></script>
+<script src="https://d3js.org/queue.v1.min.js"></script>
+<script src="js/worldmap-twcdc.v1.js"></script>
+
+<script>
+var countries = {};
+
+var CDC_API_URL = "https://www.cdc.gov.tw/CountryEpidLevel/ExportJSON";
+var CORS_PROXY_URL = "https://corsproxy.io/?" + encodeURIComponent(CDC_API_URL);
+
+function removeBOM(text) {
+    if (text.charCodeAt(0) === 0xFEFF) {
+        return text.slice(1);
+    }
+    return text;
+}
+
+function processData(json) {
+    var msgs = ["Watch", "Alert", "Warning"];
+    var colors = ["FFFF00", "FFA500", "FF0000"];
+    var levels = [[], [], []];
+    var all = {};
+    var pandemic = -1;
+
+    for (var k = 0; k < json.length; k++) {
+        var item = json[k];
+        if (item["ISO3166"] === "") {
+            item["ISO3166"] = "ALL";
+            item["areaDesc_EN"] = "Others";
+        }
+
+        var alertDisease = item["alert_disease"];
+        if (!all[alertDisease]) {
+            all[alertDisease] = {};
+        }
+        all[alertDisease][item["ISO3166"]] = item;
+
+        for (var i = msgs.length - 1; i >= 0; i--) {
+            if (item["severity_level"] && item["severity_level"].indexOf(msgs[i]) !== -1) {
+                levels[i].push(item["ISO3166"]);
+                if (item["ISO3166"] === "ALL") {
+                    pandemic = i;
+                }
+            }
+        }
+    }
+
+    return { all: all, msgs: msgs, colors: colors, levels: levels, pandemic: pandemic };
+}
+
+function renderTable(all, msgs, colors, levels) {
+    var rows = "";
+    for (var disease in all) {
+        rows += "<tr><td align=\"center\"><font size=\"+2\" color=\"0000FF\">" + disease + "</font></td></tr>";
+        for (var i = msgs.length - 1; i >= 0; i--) {
+            rows += "<tr><td bgcolor=\"" + colors[i] + "\" align=\"center\"><font size=\"+2\" color=\"#000000\">" + msgs[i] + "</font></td></tr>";
+            rows += "<tr valign=\"top\"><td align=\"center\">";
+            var num = 0;
+            for (var j = 0; j < levels[i].length; j++) {
+                var country = levels[i][j];
+                if (all[disease] && all[disease][country]) {
+                    var tmp = all[disease][country];
+                    if (num === 0) {
+                        rows += tmp["areaDesc"] + " (" + tmp["areaDesc_EN"] + ")";
+                    } else {
+                        rows += ", " + tmp["areaDesc"] + " (" + tmp["areaDesc_EN"] + ")";
+                    }
+                    num++;
+                }
+            }
+            rows += "</td></tr>";
+        }
+    }
+    document.getElementById("country_names_table").innerHTML = rows;
+}
+
+function buildCountriesMap(all, msgs, levels) {
+    var js_str = {};
+    for (var disease in all) {
+        for (var i = 0; i < msgs.length; i++) {
+            for (var j = 0; j < levels[i].length; j++) {
+                var country = levels[i][j];
+                if (all[disease] && all[disease][country]) {
+                    var tmp = all[disease][country];
+                    var ss = "<br>" + tmp["alert_disease"] + ":&nbsp;" + tmp["severity_level"];
+                    if (js_str[country]) {
+                        js_str[country] += ss;
+                    } else {
+                        js_str[country] = ss;
+                    }
+                }
+            }
+        }
+    }
+    for (var key in js_str) {
+        countries[key] = js_str[key];
+    }
+}
+
+function initMap(colors, levels, all, pandemic) {
+    var regionColor = pandemic < 0 ? "#c0e0c0" : "#" + colors[pandemic];
+
+    var createmap = new Worldmap({
+        elementid: "#mapcontainer",
+        mapstyle: {
+            ocean: "#CBEEFB",
+            region: regionColor,
+            border: "#000000"
+        },
+        project: {
+            name: "Mercator"
+        },
+        showtable: false,
+        editpanel: false,
+        player: false
+    });
+
+    var countryUpdates = [];
+    for (var disease in all) {
+        for (var i = 0; i < colors.length; i++) {
+            for (var j = 0; j < levels[i].length; j++) {
+                var country = levels[i][j];
+                if (country === "ALL") continue;
+                if (all[disease] && all[disease][country]) {
+                    countryUpdates.push({ "location": country, "color": "#" + colors[i] });
+                }
+            }
+        }
+    }
+
+    setTimeout(function() {
+        createmap.update(countryUpdates, "cloropleth");
+    }, 500);
+}
+
+function fetchAndRender(url) {
+    return fetch(url)
+        .then(function(response) {
+            if (!response.ok) {
+                throw new Error("HTTP error: " + response.status);
+            }
+            return response.text();
+        })
+        .then(function(text) {
+            text = removeBOM(text);
+            var json = JSON.parse(text);
+
+            var now = new Date();
+            document.getElementById("fetch_time").textContent = now.toLocaleString("zh-TW", { timeZone: "Asia/Taipei" }) + " CST";
+
+            var data = processData(json);
+            renderTable(data.all, data.msgs, data.colors, data.levels);
+            buildCountriesMap(data.all, data.msgs, data.levels);
+            initMap(data.colors, data.levels, data.all, data.pandemic);
+        });
+}
+
+$(document).ready(function() {
+    fetchAndRender(CDC_API_URL)
+        .catch(function() {
+            // Fallback to CORS proxy if direct fetch fails (e.g. CORS restriction)
+            return fetchAndRender(CORS_PROXY_URL);
+        })
+        .catch(function(err) {
+            document.getElementById("fetch_time").textContent = "資料載入失敗：" + err.message;
+        });
+});
+</script>
+
+<hr>
+<div class="notes" align="center">
+    <a href="https://github.com/cclljj/TW-CDC-Travel-Health">GitHub</a> | <a href="https://worldmapjs.org/cloropleth.html">WorldMap.js</a>
+</div>
+
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-61532541-2"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'UA-61532541-2');
+</script>
+
+</body>
+</html>
