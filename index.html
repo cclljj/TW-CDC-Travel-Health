@@ -44,6 +44,7 @@
 <script>
 var countries = {};
 
+var CACHED_DATA_URL = "data/travel-health.json";
 var CDC_API_URL = "https://www.cdc.gov.tw/CountryEpidLevel/ExportJSON";
 var CORS_PROXY_URL = "https://corsproxy.io/?" + encodeURIComponent(CDC_API_URL);
 
@@ -195,7 +196,11 @@ function fetchAndRender(url) {
 }
 
 $(document).ready(function() {
-    fetchAndRender(CDC_API_URL)
+    fetchAndRender(CACHED_DATA_URL)
+        .catch(function() {
+            // Fallback to direct CDC API
+            return fetchAndRender(CDC_API_URL);
+        })
         .catch(function() {
             // Fallback to CORS proxy if direct fetch fails (e.g. CORS restriction)
             return fetchAndRender(CORS_PROXY_URL);

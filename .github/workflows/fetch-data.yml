@@ -1,0 +1,43 @@
+name: Fetch CDC Travel Health Data
+
+on:
+  schedule:
+    - cron: '0 */6 * * *'  # Every 6 hours
+  workflow_dispatch:        # Allow manual trigger
+
+jobs:
+  fetch-data:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch CDC travel health data
+        run: |
+          mkdir -p data
+          HTTP_STATUS=$(curl -s -w "%{http_code}" \
+            -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" \
+            -H "Referer: https://www.cdc.gov.tw/CountryEpidLevel/" \
+            -H "Accept: application/json, text/plain, */*" \
+            "https://www.cdc.gov.tw/CountryEpidLevel/ExportJSON" \
+            -o data/travel-health.json)
+          echo "HTTP status: $HTTP_STATUS"
+          if [ "$HTTP_STATUS" != "200" ]; then
+            echo "Fetch failed with status $HTTP_STATUS"
+            exit 1
+          fi
+          echo "Fetched $(wc -c < data/travel-health.json) bytes"
+
+      - name: Commit and push if data changed
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git add data/travel-health.json
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Update travel health data [skip ci]"
+            git push
+          fi
