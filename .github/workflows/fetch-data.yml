@@ -14,21 +14,66 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Install dependencies
+        run: pip install requests
+
       - name: Fetch CDC travel health data
         run: |
           mkdir -p data
-          HTTP_STATUS=$(curl -s -w "%{http_code}" \
-            -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" \
-            -H "Referer: https://www.cdc.gov.tw/CountryEpidLevel/" \
-            -H "Accept: application/json, text/plain, */*" \
-            "https://www.cdc.gov.tw/CountryEpidLevel/ExportJSON" \
-            -o data/travel-health.json)
-          echo "HTTP status: $HTTP_STATUS"
-          if [ "$HTTP_STATUS" != "200" ]; then
-            echo "Fetch failed with status $HTTP_STATUS"
-            exit 1
-          fi
-          echo "Fetched $(wc -c < data/travel-health.json) bytes"
+          python3 - <<'EOF'
+          import requests
+          import json
+          import sys
+
+          BASE_URL = "https://www.cdc.gov.tw"
+          PAGE_URL = BASE_URL + "/CountryEpidLevel/"
+          API_URL  = BASE_URL + "/CountryEpidLevel/ExportJSON"
+
+          headers = {
+              "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+              "Accept-Language": "zh-TW,zh;q=0.9,en-US;q=0.8,en;q=0.7",
+              "Accept-Encoding": "gzip, deflate, br",
+          }
+
+          session = requests.Session()
+          session.headers.update(headers)
+
+          # Step 1: visit the main page to obtain session cookies
+          print("Fetching main page for session cookies...")
+          try:
+              page_resp = session.get(PAGE_URL, timeout=30)
+              print(f"Main page status: {page_resp.status_code}")
+          except Exception as e:
+              print(f"Warning: could not fetch main page: {e}")
+
+          # Step 2: call the JSON export endpoint with the established session
+          print("Fetching JSON data...")
+          api_headers = {
+              "Referer": PAGE_URL,
+              "Accept": "application/json, text/plain, */*",
+              "X-Requested-With": "XMLHttpRequest",
+          }
+          resp = session.get(API_URL, headers=api_headers, timeout=30)
+          print(f"API status: {resp.status_code}")
+
+          if resp.status_code != 200:
+              print(f"Fetch failed with HTTP {resp.status_code}")
+              sys.exit(1)
+
+          # Validate JSON
+          text = resp.text.lstrip("\ufeff")  # strip BOM if present
+          data = json.loads(text)
+          print(f"Fetched {len(data)} records")
+
+          with open("data/travel-health.json", "w", encoding="utf-8") as f:
+              json.dump(data, f, ensure_ascii=False)
+          print("Saved to data/travel-health.json")
+          EOF
 
       - name: Commit and push if data changed
         run: |
