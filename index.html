@@ -197,12 +197,12 @@ function fetchAndRender(url) {
 
 $(document).ready(function() {
     fetchAndRender(CACHED_DATA_URL)
-        .catch(function() {
-            // Fallback to direct CDC API
+        .catch(function(err) {
+            console.warn("Failed to load cached data, falling back to CDC API:", err);
             return fetchAndRender(CDC_API_URL);
         })
-        .catch(function() {
-            // Fallback to CORS proxy if direct fetch fails (e.g. CORS restriction)
+        .catch(function(err) {
+            console.warn("Failed to load CDC API directly, falling back to CORS proxy:", err);
             return fetchAndRender(CORS_PROXY_URL);
         })
         .catch(function(err) {
