@@ -46,7 +46,10 @@ var countries = {};
 
 var CACHED_DATA_URL = "data/travel-health.json";
 var CDC_API_URL = "https://www.cdc.gov.tw/CountryEpidLevel/ExportJSON";
-var CORS_PROXY_URL = "https://corsproxy.io/?" + encodeURIComponent(CDC_API_URL);
+var CORS_PROXIES = [
+    "https://corsproxy.io/?" + encodeURIComponent(CDC_API_URL),
+    "https://api.allorigins.win/raw?url=" + encodeURIComponent(CDC_API_URL)
+];
 
 function removeBOM(text) {
     if (text.charCodeAt(0) === 0xFEFF) {
@@ -196,15 +199,23 @@ function fetchAndRender(url) {
 }
 
 $(document).ready(function() {
+    var proxyIndex = 0;
+
+    function tryNextProxy(err) {
+        if (proxyIndex < CORS_PROXIES.length) {
+            var url = CORS_PROXIES[proxyIndex++];
+            console.warn("Trying CORS proxy: " + url, err);
+            return fetchAndRender(url).catch(tryNextProxy);
+        }
+        return Promise.reject(err);
+    }
+
     fetchAndRender(CACHED_DATA_URL)
         .catch(function(err) {
             console.warn("Failed to load cached data, falling back to CDC API:", err);
             return fetchAndRender(CDC_API_URL);
         })
-        .catch(function(err) {
-            console.warn("Failed to load CDC API directly, falling back to CORS proxy:", err);
-            return fetchAndRender(CORS_PROXY_URL);
-        })
+        .catch(tryNextProxy)
         .catch(function(err) {
             document.getElementById("fetch_time").textContent = "資料載入失敗：" + err.message;
         });
