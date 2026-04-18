@@ -45,10 +45,13 @@
 var countries = {};
 
 var CACHED_DATA_URL = "data/travel-health.json";
+var CACHED_DATA_URL_GITHUB = "https://raw.githubusercontent.com/cclljj/TW-CDC-Travel-Health/main/data/travel-health.json";
 var CDC_API_URL = "https://www.cdc.gov.tw/CountryEpidLevel/ExportJSON";
 var CORS_PROXIES = [
     "https://corsproxy.io/?" + encodeURIComponent(CDC_API_URL),
-    "https://api.allorigins.win/raw?url=" + encodeURIComponent(CDC_API_URL)
+    "https://api.allorigins.win/raw?url=" + encodeURIComponent(CDC_API_URL),
+    "https://thingproxy.freeboard.io/fetch/" + CDC_API_URL,
+    "https://api.codetabs.com/v1/proxy?quest=" + encodeURIComponent(CDC_API_URL)
 ];
 
 function removeBOM(text) {
@@ -211,6 +214,10 @@ $(document).ready(function() {
     }
 
     fetchAndRender(CACHED_DATA_URL)
+        .catch(function(err) {
+            console.warn("Failed to load local cached data, trying GitHub raw URL:", err);
+            return fetchAndRender(CACHED_DATA_URL_GITHUB);
+        })
         .catch(function(err) {
             console.warn("Failed to load cached data, falling back to CDC API:", err);
             return fetchAndRender(CDC_API_URL);
