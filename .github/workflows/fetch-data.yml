@@ -2,7 +2,7 @@ name: Fetch CDC Travel Health Data
 
 on:
   schedule:
-    - cron: '0 */6 * * *'  # Every 6 hours
+    - cron: '0 2 * * *'  # Every day at 02:00 UTC (10:00 Taiwan time)
   workflow_dispatch:        # Allow manual trigger
 
 jobs:
@@ -29,6 +29,11 @@ jobs:
           import requests
           import json
           import sys
+          import urllib3
+
+          # www.cdc.gov.tw has an SSL cert missing Subject Key Identifier;
+          # disable verification to work around the government site's cert issue.
+          urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
           BASE_URL = "https://www.cdc.gov.tw"
           PAGE_URL = BASE_URL + "/CountryEpidLevel/"
@@ -42,6 +47,7 @@ jobs:
 
           session = requests.Session()
           session.headers.update(headers)
+          session.verify = False
 
           # Step 1: visit the main page to obtain session cookies
           print("Fetching main page for session cookies...")
