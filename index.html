@@ -1,40 +1,185 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
-<title>Taiwan CDC - 國際間旅遊疫情建議</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Taiwan CDC - 國際間旅遊疫情建議等級</title>
 
-<!-- Latest compiled and minified CSS -->
-<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
-<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.15/css/jquery.dataTables.min.css">
+<!-- Bootstrap 5 -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+<!-- Custom worldmap CSS -->
 <link rel="stylesheet" href="css/worldmap-twcdc.v1.css">
+
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; height: 100%; background: #eef2f7; font-family: 'Segoe UI', 'PingFang TC', 'Microsoft JhengHei', sans-serif; }
+
+  /* ── Header ── */
+  #page_header {
+    background: linear-gradient(135deg, #0d3b66 0%, #1a6fa8 100%);
+    color: #fff;
+    padding: 14px 20px 10px;
+    text-align: center;
+  }
+  #page_header h1 { font-size: 1.55rem; font-weight: 800; margin: 0 0 4px; letter-spacing: .5px; }
+  #page_header .source-line { font-size: .82rem; opacity: .85; }
+  #page_header .source-line a { color: #a8d8f0; text-decoration: none; }
+  #fetch_time { color: #fde68a; font-weight: 700; }
+  .stats-row {
+    display: flex; justify-content: center; gap: 24px;
+    margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,.2);
+  }
+  .stat-item { text-align: center; }
+  .stat-num  { font-size: 1.5rem; font-weight: 900; line-height: 1.1; }
+  .stat-lbl  { font-size: .65rem; opacity: .75; letter-spacing: .3px; }
+
+  /* ── Main layout ── */
+  .main-layout {
+    display: flex;
+    height: calc(100vh - 148px);
+    min-height: 460px;
+    overflow: hidden;
+  }
+  #mapcontainer { flex: 1 1 auto; background: #d6eaf8; overflow: hidden; min-width: 0; }
+
+  /* ── Sidebar ── */
+  #sidebar {
+    width: 320px; flex-shrink: 0;
+    background: #fff;
+    border-left: 1px solid #cdd8e3;
+    display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+  #sidebar-inner { flex: 1; overflow-y: auto; padding: 10px 12px; }
+
+  /* ── Responsive: stack vertically on narrow screens ── */
+  @media (max-width: 700px) {
+    .main-layout { flex-direction: column; height: auto; }
+    #mapcontainer { width: 100%; height: 320px; flex: none; }
+    #sidebar { width: 100%; border-left: none; border-top: 1px solid #cdd8e3; max-height: 60vh; }
+    .stats-row { gap: 12px; }
+    .stat-num { font-size: 1.2rem; }
+  }
+
+  /* Legend box */
+  .legend-box {
+    background: #f1f6fb; border: 1px solid #c8daea;
+    border-radius: 8px; padding: 10px 12px; margin-bottom: 10px;
+  }
+  .legend-title { font-weight: 700; font-size: .82rem; color: #1a5276; margin-bottom: 6px; }
+  .legend-item { display: flex; align-items: flex-start; gap: 8px; margin: 5px 0; font-size: .78rem; line-height: 1.4; color: #333; }
+  .legend-swatch { width: 16px; height: 16px; border-radius: 3px; border: 1px solid rgba(0,0,0,.2); flex-shrink: 0; margin-top: 1px; }
+
+  /* Disease sections */
+  .disease-section { margin-bottom: 8px; }
+  .disease-header {
+    background: #1a5276; color: #fff;
+    font-weight: 700; font-size: .8rem;
+    padding: 4px 10px; border-radius: 6px;
+    margin-bottom: 4px;
+  }
+  .level-badge {
+    display: inline-block;
+    font-size: .72rem; font-weight: 700;
+    padding: 2px 9px; border-radius: 12px;
+    margin: 3px 0 2px;
+  }
+  .badge-warning { background: #e74c3c; color: #fff; }
+  .badge-alert   { background: #e67e22; color: #fff; }
+  .badge-watch   { background: #d4ac0d; color: #fff; }
+  .country-list  { font-size: .76rem; color: #444; line-height: 1.65; padding: 1px 4px 6px; }
+
+  /* Footer */
+  footer {
+    text-align: center; background: #0d3b66;
+    color: rgba(255,255,255,.65); font-size: .75rem; padding: 6px;
+  }
+  footer a { color: rgba(255,255,255,.85); text-decoration: none; }
+  footer a:hover { color: #fff; }
+
+  /* Scrollbar styling */
+  #sidebar-inner::-webkit-scrollbar { width: 5px; }
+  #sidebar-inner::-webkit-scrollbar-track { background: #f0f0f0; }
+  #sidebar-inner::-webkit-scrollbar-thumb { background: #bbb; border-radius: 3px; }
+
+  /* Loading / error */
+  #loading-msg { text-align: center; padding: 40px 20px; color: #555; font-size: .9rem; }
+</style>
 </head>
 <body>
 
-<div id="page_header" align="center">
-<h2>國際間旅遊疫情建議</h2>
-資料來源：<a href="https://www.cdc.gov.tw/CountryEpidLevel/" alt="data source">台灣衛生福利部疾病管制署</a><br>
-資料擷取時間：<span id="fetch_time"></span>
+<!-- ═══ Header ═══ -->
+<div id="page_header">
+  <h1>🌍 國際間旅遊疫情建議等級</h1>
+  <div class="source-line">
+    資料來源：<a href="https://www.cdc.gov.tw/CountryEpidLevel/" target="_blank">台灣衛生福利部疾病管制署</a>
+    &nbsp;｜&nbsp;資料擷取時間：<span id="fetch_time">載入中…</span>
+  </div>
+  <div class="stats-row">
+    <div class="stat-item">
+      <div class="stat-num" id="stat_warning" style="color:#ff8080">–</div>
+      <div class="stat-lbl">第三級 警告</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num" id="stat_alert" style="color:#ffb347">–</div>
+      <div class="stat-lbl">第二級 警示</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num" id="stat_watch" style="color:#fde68a">–</div>
+      <div class="stat-lbl">第一級 注意</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num" id="stat_disease" style="color:#a8d8f0">–</div>
+      <div class="stat-lbl">疾病類別</div>
+    </div>
+  </div>
 </div>
 
-<table border=0>
-<tr valign="top">
-<td>
-<div id="country_names" class="country_names">
-<table id="country_names_table" border=1 width=300>
-</table>
-</div>
-</td>
-<td>
-<div id="mapcontainer">
-</div>
-</td>
-</tr>
-</table>
+<!-- Hidden shim required by worldmap-twcdc.v1.js which reads #country_names at parse time -->
+<div id="country_names" style="display:none;width:0;height:0;overflow:hidden;position:absolute"></div>
 
+<!-- ═══ Main ═══ -->
+<div class="main-layout">
+  <!-- Map -->
+  <div id="mapcontainer"></div>
+
+  <!-- Sidebar -->
+  <div id="sidebar">
+    <div id="sidebar-inner">
+      <!-- Legend -->
+      <div class="legend-box">
+        <div class="legend-title">⚠️ 旅遊疫情建議等級說明</div>
+        <div class="legend-item">
+          <div class="legend-swatch" style="background:#FF0000"></div>
+          <span><strong>第三級 警告 (Warning)</strong>：避免至當地所有非必要旅遊</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-swatch" style="background:#FFA500"></div>
+          <span><strong>第二級 警示 (Alert)</strong>：對當地採取加強防護</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-swatch" style="background:#FFD700"></div>
+          <span><strong>第一級 注意 (Watch)</strong>：提醒注意當地流行疫情</span>
+        </div>
+      </div>
+
+      <!-- Country list populated by JS -->
+      <div id="country_names_list">
+        <div id="loading-msg">⏳ 資料載入中，請稍候…</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ Footer ═══ -->
+<footer>
+  <a href="https://github.com/cclljj/TW-CDC-Travel-Health">GitHub</a> &nbsp;|&nbsp;
+  <a href="https://worldmapjs.org/cloropleth.html">WorldMap.js</a>
+</footer>
+
+<!-- ═══ Scripts ═══ -->
 <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
-<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
-<script src="https://cdn.datatables.net/1.10.15/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://d3js.org/d3.v3.min.js"></script>
 <script src="https://d3js.org/topojson.v1.min.js"></script>
 <script src="https://d3js.org/d3.geo.projection.v0.min.js"></script>
@@ -42,11 +187,13 @@
 <script src="js/worldmap-twcdc.v1.js"></script>
 
 <script>
+// Global used by worldmap tooltip
 var countries = {};
 
-var CACHED_DATA_URL = "data/travel-health.json";
-var CACHED_DATA_URL_GITHUB = "https://raw.githubusercontent.com/cclljj/TW-CDC-Travel-Health/main/data/travel-health.json";
-var CDC_API_URL = "https://www.cdc.gov.tw/CountryEpidLevel/ExportJSON";
+// Data source priority: local cache → GitHub raw → CDC API → CORS proxies
+var CACHED_DATA_URL        = "data/travel-health.json";
+var CACHED_DATA_URL_GITHUB = "https://raw.githubusercontent.com/cclljj/TW-CDC-Travel-Health/master/data/travel-health.json";
+var CDC_API_URL            = "https://www.cdc.gov.tw/CountryEpidLevel/ExportJSON";
 var CORS_PROXIES = [
     "https://corsproxy.io/?" + encodeURIComponent(CDC_API_URL),
     "https://api.allorigins.win/raw?url=" + encodeURIComponent(CDC_API_URL),
@@ -54,150 +201,175 @@ var CORS_PROXIES = [
     "https://api.codetabs.com/v1/proxy?quest=" + encodeURIComponent(CDC_API_URL)
 ];
 
-function removeBOM(text) {
-    if (text.charCodeAt(0) === 0xFEFF) {
-        return text.slice(1);
-    }
-    return text;
+// Level config: 0=注意(Watch), 1=警示(Alert), 2=警告(Warning)
+var LEVEL_COLORS     = ["FFD700", "FFA500", "FF0000"];
+var LEVEL_BADGE_CSS  = ["badge-watch", "badge-alert", "badge-warning"];
+var LEVEL_SHORT      = ["第一級 注意 (Watch)", "第二級 警示 (Alert)", "第三級 警告 (Warning)"];
+
+/**
+ * Map Chinese severity_level strings to a numeric index.
+ * Returns -1 for 解除 (lifted) and unknown values.
+ */
+function getSeverityIndex(level) {
+    if (!level) return -1;
+    if (level.indexOf("第三級") !== -1 || level.indexOf("警告") !== -1) return 2;
+    if (level.indexOf("第二級") !== -1 || level.indexOf("警示") !== -1) return 1;
+    if (level.indexOf("第一級") !== -1 || level.indexOf("注意") !== -1) return 0;
+    return -1; // 解除 or unrecognised
 }
 
+function removeBOM(text) {
+    return (text.charCodeAt(0) === 0xFEFF) ? text.slice(1) : text;
+}
+
+/**
+ * Process raw JSON from CDC API.
+ * Returns { all, levels, pandemic }
+ *   all:      { disease: { iso: record } }
+ *   levels:   [ [iso…], [iso…], [iso…] ]  indexed by severity
+ *   pandemic: highest level that applies globally (ISO === "ALL"), or -1
+ */
 function processData(json) {
-    var msgs = ["Watch", "Alert", "Warning"];
-    var colors = ["FFFF00", "FFA500", "FF0000"];
-    var levels = [[], [], []];
-    var all = {};
+    var levels   = [[], [], []];
+    var all      = {};
     var pandemic = -1;
 
     for (var k = 0; k < json.length; k++) {
         var item = json[k];
-        if (item["ISO3166"] === "") {
-            item["ISO3166"] = "ALL";
-            item["areaDesc_EN"] = "Others";
+        var idx  = getSeverityIndex(item["severity_level"]);
+        if (idx < 0) continue; // skip 解除 and unrecognised
+
+        // Normalise missing ISO code
+        var iso = item["ISO3166"] || "";
+        if (iso === "") {
+            iso = "ALL";
+            item["ISO3166"]       = "ALL";
+            item["areaDesc_EN"]   = "Others";
         }
 
-        var alertDisease = item["alert_disease"];
-        if (!all[alertDisease]) {
-            all[alertDisease] = {};
-        }
-        all[alertDisease][item["ISO3166"]] = item;
+        var disease = item["alert_disease"];
+        if (!all[disease]) all[disease] = {};
 
-        for (var i = msgs.length - 1; i >= 0; i--) {
-            if (item["severity_level"] && item["severity_level"].indexOf(msgs[i]) !== -1) {
-                levels[i].push(item["ISO3166"]);
-                if (item["ISO3166"] === "ALL") {
-                    pandemic = i;
-                }
-            }
+        // Keep highest alert level per country per disease
+        if (!all[disease][iso] || getSeverityIndex(all[disease][iso]["severity_level"]) < idx) {
+            all[disease][iso] = item;
         }
+
+        // Track per-level ISO list (deduplicated)
+        if (levels[idx].indexOf(iso) === -1) levels[idx].push(iso);
+        if (iso === "ALL") pandemic = Math.max(pandemic, idx);
     }
 
-    return { all: all, msgs: msgs, colors: colors, levels: levels, pandemic: pandemic };
+    return { all: all, levels: levels, pandemic: pandemic };
 }
 
-function renderTable(all, msgs, colors, levels) {
-    var rows = "";
+/** Populate the sidebar with disease/country breakdown and update stat counters. */
+function renderSidebar(all, levels) {
+    // Unique countries per level (excluding "ALL")
+    var countrySet = [{}, {}, {}];
     for (var disease in all) {
-        rows += "<tr><td align=\"center\"><font size=\"+2\" color=\"0000FF\">" + disease + "</font></td></tr>";
-        for (var i = msgs.length - 1; i >= 0; i--) {
-            rows += "<tr><td bgcolor=\"" + colors[i] + "\" align=\"center\"><font size=\"+2\" color=\"#000000\">" + msgs[i] + "</font></td></tr>";
-            rows += "<tr valign=\"top\"><td align=\"center\">";
-            var num = 0;
-            for (var j = 0; j < levels[i].length; j++) {
-                var country = levels[i][j];
-                if (all[disease] && all[disease][country]) {
-                    var tmp = all[disease][country];
-                    if (num === 0) {
-                        rows += tmp["areaDesc"] + " (" + tmp["areaDesc_EN"] + ")";
-                    } else {
-                        rows += ", " + tmp["areaDesc"] + " (" + tmp["areaDesc_EN"] + ")";
-                    }
-                    num++;
-                }
-            }
-            rows += "</td></tr>";
+        for (var iso in all[disease]) {
+            if (iso === "ALL") continue;
+            var idx = getSeverityIndex(all[disease][iso]["severity_level"]);
+            if (idx >= 0) countrySet[idx][iso] = true;
         }
     }
-    document.getElementById("country_names_table").innerHTML = rows;
+    document.getElementById("stat_warning").textContent = Object.keys(countrySet[2]).length;
+    document.getElementById("stat_alert").textContent   = Object.keys(countrySet[1]).length;
+    document.getElementById("stat_watch").textContent   = Object.keys(countrySet[0]).length;
+    document.getElementById("stat_disease").textContent = Object.keys(all).length;
+
+    var html = "";
+    for (var d in all) {
+        var hasContent = false;
+        var inner = "";
+        for (var i = 2; i >= 0; i--) {
+            var list = [];
+            for (var iso2 in all[d]) {
+                if (iso2 === "ALL") continue;
+                if (getSeverityIndex(all[d][iso2]["severity_level"]) === i) {
+                    var it = all[d][iso2];
+                    list.push(it["areaDesc"] + " (" + it["areaDesc_EN"] + ")");
+                }
+            }
+            if (list.length) {
+                hasContent = true;
+                inner += '<span class="level-badge ' + LEVEL_BADGE_CSS[i] + '">' + LEVEL_SHORT[i] + '</span>';
+                inner += '<div class="country-list">' + list.join("、") + '</div>';
+            }
+        }
+        if (hasContent) {
+            html += '<div class="disease-section">';
+            html += '<div class="disease-header">🦠 ' + d + '</div>';
+            html += inner;
+            html += '</div>';
+        }
+    }
+
+    document.getElementById("country_names_list").innerHTML = html || '<div style="color:#888;font-size:.85rem;padding:10px">目前無旅遊疫情建議。</div>';
 }
 
-function buildCountriesMap(all, msgs, levels) {
-    var js_str = {};
+/** Fill the global `countries` map used by worldmap for tooltips. */
+function buildCountriesGlobal(all) {
+    var tmp = {};
     for (var disease in all) {
-        for (var i = 0; i < msgs.length; i++) {
-            for (var j = 0; j < levels[i].length; j++) {
-                var country = levels[i][j];
-                if (all[disease] && all[disease][country]) {
-                    var tmp = all[disease][country];
-                    var ss = "<br>" + tmp["alert_disease"] + ":&nbsp;" + tmp["severity_level"];
-                    if (js_str[country]) {
-                        js_str[country] += ss;
-                    } else {
-                        js_str[country] = ss;
-                    }
-                }
-            }
+        for (var iso in all[disease]) {
+            if (iso === "ALL") continue;
+            var it  = all[disease][iso];
+            var tip = "<br>" + it["alert_disease"] + "：" + it["severity_level"];
+            tmp[iso] = (tmp[iso] || "") + tip;
         }
     }
-    for (var key in js_str) {
-        countries[key] = js_str[key];
-    }
+    for (var key in tmp) countries[key] = tmp[key];
 }
 
-function initMap(colors, levels, all, pandemic) {
-    var regionColor = pandemic < 0 ? "#c0e0c0" : "#" + colors[pandemic];
+/** Initialise and colour the world map. */
+function initMap(levels, pandemic) {
+    var regionColor = (pandemic < 0) ? "#c8e6c9" : ("#" + LEVEL_COLORS[pandemic]);
+    var container   = document.getElementById("mapcontainer");
+    var mapW        = container ? container.offsetWidth  : (window.innerWidth - 320);
+    var mapH        = container ? container.offsetHeight : Math.round(mapW / 2);
 
     var createmap = new Worldmap({
-        elementid: "#mapcontainer",
-        mapstyle: {
-            ocean: "#CBEEFB",
-            region: regionColor,
-            border: "#000000"
-        },
-        project: {
-            name: "Mercator"
-        },
-        showtable: false,
-        editpanel: false,
-        player: false
+        elementid:  "#mapcontainer",
+        width:      mapW,
+        height:     mapH,
+        mapstyle:   { ocean: "#CBEEfb", region: regionColor, border: "#555555" },
+        project:    { name: "Mercator" },
+        showtable:  false,
+        editpanel:  false,
+        player:     false
     });
 
-    var countryUpdates = [];
-    for (var disease in all) {
-        for (var i = 0; i < colors.length; i++) {
-            for (var j = 0; j < levels[i].length; j++) {
-                var country = levels[i][j];
-                if (country === "ALL") continue;
-                if (all[disease] && all[disease][country]) {
-                    countryUpdates.push({ "location": country, "color": "#" + colors[i] });
-                }
-            }
+    var updates = [];
+    for (var i = 0; i < LEVEL_COLORS.length; i++) {
+        for (var j = 0; j < levels[i].length; j++) {
+            var iso = levels[i][j];
+            if (iso === "ALL") continue;
+            updates.push({ location: iso, color: "#" + LEVEL_COLORS[i] });
         }
     }
 
-    setTimeout(function() {
-        createmap.update(countryUpdates, "cloropleth");
-    }, 500);
+    setTimeout(function() { createmap.update(updates, "cloropleth"); }, 500);
 }
 
+/** Fetch data from a URL, parse JSON, and render everything. */
 function fetchAndRender(url) {
     return fetch(url)
-        .then(function(response) {
-            if (!response.ok) {
-                throw new Error("HTTP error: " + response.status);
-            }
-            return response.text();
+        .then(function(r) {
+            if (!r.ok) throw new Error("HTTP " + r.status);
+            return r.text();
         })
         .then(function(text) {
-            text = removeBOM(text);
-            var json = JSON.parse(text);
-
-            var now = new Date();
-            document.getElementById("fetch_time").textContent = now.toLocaleString("zh-TW", { timeZone: "Asia/Taipei" }) + " CST";
+            var json = JSON.parse(removeBOM(text));
+            var now  = new Date();
+            document.getElementById("fetch_time").textContent =
+                now.toLocaleString("zh-TW", { timeZone: "Asia/Taipei" }) + " CST";
 
             var data = processData(json);
-            renderTable(data.all, data.msgs, data.colors, data.levels);
-            buildCountriesMap(data.all, data.msgs, data.levels);
-            initMap(data.colors, data.levels, data.all, data.pandemic);
+            renderSidebar(data.all, data.levels);
+            buildCountriesGlobal(data.all);
+            initMap(data.levels, data.pandemic);
         });
 }
 
@@ -207,7 +379,7 @@ $(document).ready(function() {
     function tryNextProxy(err) {
         if (proxyIndex < CORS_PROXIES.length) {
             var url = CORS_PROXIES[proxyIndex++];
-            console.warn("Trying CORS proxy: " + url, err);
+            console.warn("Trying CORS proxy:", url, err);
             return fetchAndRender(url).catch(tryNextProxy);
         }
         return Promise.reject(err);
@@ -215,32 +387,28 @@ $(document).ready(function() {
 
     fetchAndRender(CACHED_DATA_URL)
         .catch(function(err) {
-            console.warn("Failed to load local cached data, trying GitHub raw URL:", err);
+            console.warn("Local cache failed, trying GitHub raw:", err);
             return fetchAndRender(CACHED_DATA_URL_GITHUB);
         })
         .catch(function(err) {
-            console.warn("Failed to load cached data, falling back to CDC API:", err);
+            console.warn("GitHub cache failed, trying CDC API:", err);
             return fetchAndRender(CDC_API_URL);
         })
         .catch(tryNextProxy)
         .catch(function(err) {
             document.getElementById("fetch_time").textContent = "資料載入失敗：" + err.message;
+            document.getElementById("country_names_list").innerHTML =
+                '<div style="color:#c0392b;padding:12px;font-size:.85rem">⚠️ 資料載入失敗，請稍後再試。<br>' + err.message + '</div>';
         });
 });
 </script>
 
-<hr>
-<div class="notes" align="center">
-    <a href="https://github.com/cclljj/TW-CDC-Travel-Health">GitHub</a> | <a href="https://worldmapjs.org/cloropleth.html">WorldMap.js</a>
-</div>
-
-<!-- Global site tag (gtag.js) - Google Analytics -->
+<!-- Google Analytics -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=UA-61532541-2"></script>
 <script>
   window.dataLayer = window.dataLayer || [];
   function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-  gtag('config', 'UA-61532541-2');
+  gtag('js', new Date()); gtag('config', 'UA-61532541-2');
 </script>
 
 </body>
